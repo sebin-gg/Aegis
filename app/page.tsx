@@ -1,22 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  Check,
   CheckCircle2,
   Clipboard,
-  ClipboardCheck,
   Cpu,
   Radar,
   Shield,
   Terminal,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useAttackAnalysis } from "../hooks/useAttackAnalysis";
 
-type TabKey = "engineer" | "ciso";
 type LogLevel = { label: "INFO" | "WARN" | "CRIT"; color: string };
-type LogLine = { ts: string; level: LogLevel; msg: string };
+type LogLine = {
+  ts: string;
+  level: LogLevel;
+  msg: string;
+  tint?: "red" | "green";
+};
 type SystemStatus = "idle" | "analyzing" | "mitigated";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -34,68 +41,102 @@ function pick<T>(arr: readonly T[]) {
   return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
-function makeLogLine(now: Date) {
+function ipFromReservedRanges() {
+  const pools = [
+    "203.0.113", // TEST-NET-3
+    "198.51.100", // TEST-NET-2
+    "192.0.2", // TEST-NET-1
+  ] as const;
+  return `${pick(pools)}.${Math.floor(1 + Math.random() * 254)}`;
+}
+
+function makeLogLine(now: Date, opts?: { tint?: LogLine["tint"] }) {
   const levels = [
     { label: "INFO", color: "text-neutral-400" },
     { label: "WARN", color: "text-amber-400" },
     { label: "CRIT", color: "text-red-400" },
   ] as const satisfies readonly LogLevel[];
-  const events = [
-    "Initializing AEGIS hyper-kernel…",
-    "TLS handshake validated for edge-node user_id=8829",
-    "Scanning inbound packets at edge-01",
-    "Unusual pattern detected on port 22",
-    "Consecutive failed login attempts from 45.12.88.221",
-    "Brute force attack in progress — rate 450 req/sec",
-    "Triggering mitigation protocol 0x04",
-    "Isolating attack vector — pid=9912",
-    "Mitigation rule generated — awaiting operator confirmation",
-    "Heartbeat OK — cpu 11% — mem 46%",
-  ];
   const level = pick(levels);
-  const msg = pick(events);
-  return { ts: formatTs(now), level, msg } satisfies LogLine;
+  const ip = ipFromReservedRanges();
+  const user = pick(["root", "admin", "ubuntu", "deploy", "guest"] as const);
+  const host = pick(["gateway", "edge-01", "edge-02", "bastion", "auth"] as const);
+  const pool = [
+    `[INFO] sshd[2214]: Connection attempt from ${ip}:22`,
+    `[INFO] sshd[2214]: Accepted publickey for ${user} from ${ip} port 51234 ssh2`,
+    `[WARN] sshd[2214]: Failed password for invalid user ${user} from ${ip} port 51234 ssh2`,
+    `[WARN] sshd[2214]: Failed auth: ${user}@${host} from ${ip}`,
+    `[INFO] kernel: IN=eth0 OUT= MAC=... SRC=${ip} DST=10.0.0.10 LEN=60 TOS=0x00 PREC=0x00 TTL=52 PROTO=TCP SPT=51234 DPT=22`,
+    `[INFO] audit: USER_AUTH pid=9912 uid=0 msg='op=PAM:authentication acct="${user}" exe="/usr/sbin/sshd" hostname=${ip} res=failed'`,
+    `[WARN] fail2ban: Ban ${ip}`,
+    `[INFO] aegis-agent: Correlated ${host} telemetry — score=0.${Math.floor(
+      70 + Math.random() * 29,
+    )}`,
+    `[INFO] aegis-agent: Updated edge ruleset — blacklist add ${ip}`,
+  ] as const;
+
+  const msg = pick(pool);
+  return { ts: formatTs(now), level, msg, tint: opts?.tint } satisfies LogLine;
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabKey>("engineer");
   const [isOnline] = useState(true);
-  const [systemStatus, setSystemStatus] = useState<SystemStatus>("idle");
   const [copied, setCopied] = useState(false);
-  const [logs, setLogs] = useState<LogLine[]>(() => {
-    const base = new Date(Date.now() - 1000 * 60);
-    return Array.from({ length: 22 }, (_, i) =>
-      makeLogLine(new Date(base.getTime() + i * 2200)),
-    );
-  });
+  const [hasMounted, setHasMounted] = useState(false);
+  const [errorDismissed, setErrorDismissed] = useState(false);
+  const [logs, setLogs] = useState<LogLine[]>([]);
 
   const logViewportRef = useRef<HTMLDivElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
-  const analyzeTimerRef = useRef<number | null>(null);
 
-  const sourceIp = systemStatus === "mitigated" ? "192.168.1.100" : "—";
-  const threatId = systemStatus === "mitigated" ? "AEG-20491" : "—";
-  const targetNode = "EDGE-NODE-ALPHA-01";
-  const confidence = systemStatus === "mitigated" ? "99.9%" : "—";
-  const attackType =
-    systemStatus === "mitigated" ? "Distributed SSH Brute Force" : "—";
-  const cisoText =
-    "Executive Board: We have successfully intercepted and automatically mitigated a brute-force authentication attack on the main gateway...";
+  const { status, threatData, error, trigger, reset } = useAttackAnalysis();
+  const systemStatus: SystemStatus = status;
 
-  const mitigationScript = useMemo(() => {
-    if (systemStatus !== "mitigated") return "";
-    return "sudo iptables -A INPUT -s 192.168.1.100 -j DROP";
-  }, [sourceIp]);
+  const sourceIp = threatData?.sourceIp ?? "—";
+  const threatId = threatData?.threatId ?? "—";
+  const targetNode = threatData?.targetNode ?? "EDGE-NODE-ALPHA-01";
+  const confidence = threatData?.confidence ?? "—";
+  const attackType = threatData?.attackType ?? "—";
+  const cisoReport = threatData?.cisoReport ?? "";
+  const mitigationScript = threatData?.mitigationScript ?? "";
+  const detectedAtIso = threatData?.detectedAtIso ?? null;
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (error) setErrorDismissed(false);
+  }, [error]);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    const delayMs = systemStatus === "analyzing" ? 200 : 800;
+    const tint: LogLine["tint"] = systemStatus === "analyzing" ? "red" : undefined;
     const id = window.setInterval(() => {
       setLogs((prev) => {
-        const next = [...prev, makeLogLine(new Date())];
-        return next.length > 240 ? next.slice(next.length - 240) : next;
+        const next = [...prev, makeLogLine(new Date(), { tint })];
+        return next.length > 100 ? next.slice(next.length - 100) : next;
       });
-    }, 1600);
+    }, delayMs);
     return () => window.clearInterval(id);
-  }, []);
+  }, [hasMounted, systemStatus]);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    if (systemStatus !== "mitigated") return;
+    setLogs((prev) => {
+      const next = [
+        ...prev,
+        {
+          ts: formatTs(new Date()),
+          level: { label: "INFO", color: "text-emerald-400" },
+          msg: "[MITIGATED] Threat neutralized. Firewall rule applied.",
+          tint: "green" as const,
+        } satisfies LogLine,
+      ];
+      return next.length > 100 ? next.slice(next.length - 100) : next;
+    });
+  }, [hasMounted, systemStatus]);
 
   useEffect(() => {
     const el = logViewportRef.current;
@@ -106,7 +147,6 @@ export default function Home() {
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-      if (analyzeTimerRef.current) window.clearTimeout(analyzeTimerRef.current);
     };
   }, []);
 
@@ -115,17 +155,17 @@ export default function Home() {
       await navigator.clipboard.writeText(mitigationScript);
       setCopied(true);
       if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = window.setTimeout(() => setCopied(false), 1200);
+      copyTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
   }
 
+  const simulateAttackRef = useRef<() => void>(() => {});
+
   function onSimulateAttack() {
-    if (analyzeTimerRef.current) window.clearTimeout(analyzeTimerRef.current);
     setCopied(false);
-    setActiveTab("engineer");
-    setSystemStatus("analyzing");
+    trigger();
 
     setLogs((prev) => [
       ...prev,
@@ -136,9 +176,30 @@ export default function Home() {
       },
     ]);
 
-    analyzeTimerRef.current = window.setTimeout(() => {
-      setSystemStatus("mitigated");
-    }, 2000);
+  }
+
+  useEffect(() => {
+    simulateAttackRef.current = onSimulateAttack;
+  });
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!e.ctrlKey || !e.shiftKey) return;
+      if (e.key?.toLowerCase() !== "d") return;
+      if (systemStatus === "analyzing" || systemStatus === "mitigated") return;
+      e.preventDefault();
+      simulateAttackRef.current();
+    }
+
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, [systemStatus]);
+
+  function onReset() {
+    setCopied(false);
+    setErrorDismissed(false);
+    reset();
+    setLogs([]);
   }
 
   return (
@@ -186,21 +247,33 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-[0_0_18px_rgba(239,68,68,0.25)] transition focus:outline-none focus:ring-2",
-                systemStatus === "analyzing"
-                  ? "cursor-not-allowed border-neutral-800 bg-neutral-900 text-neutral-300 shadow-none focus:ring-neutral-700"
-                  : "border-red-500/40 bg-red-600 hover:bg-red-500 focus:ring-red-500/50",
-              )}
-              onClick={onSimulateAttack}
-              disabled={systemStatus === "analyzing"}
-              aria-label="Simulate attack"
-            >
-              <Radar className="size-4" />
-              {systemStatus === "analyzing" ? "Simulating…" : "Simulate Attack"}
-            </button>
+            {systemStatus === "mitigated" ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs font-semibold tracking-wide text-neutral-200 transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-700"
+                onClick={onReset}
+                aria-label="Reset dashboard"
+              >
+                <span className="size-4">⟲</span>
+                Reset Dashboard
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold tracking-wide text-white shadow-[0_0_18px_rgba(239,68,68,0.25)] transition focus:outline-none focus:ring-2",
+                  systemStatus === "analyzing"
+                    ? "cursor-not-allowed border-neutral-800 bg-neutral-900 text-neutral-300 shadow-none focus:ring-neutral-700"
+                    : "border-red-500/40 bg-red-600 hover:bg-red-500 focus:ring-red-500/50",
+                )}
+                onClick={onSimulateAttack}
+                disabled={systemStatus === "analyzing"}
+                aria-label="Simulate attack"
+              >
+                <Radar className="size-4" />
+                {systemStatus === "analyzing" ? "Simulating…" : "Simulate Attack"}
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -234,23 +307,57 @@ export default function Home() {
                 ref={logViewportRef}
                 className="h-[560px] overflow-auto px-3 py-2 leading-5"
               >
-                {logs.map((l, idx) => (
-                  <div
-                    key={`${l.ts}-${idx}`}
-                    className="whitespace-pre-wrap break-words text-[11px]"
-                  >
-                    <span className="text-neutral-500">[{l.ts}]</span>{" "}
-                    <span className={cn("font-semibold", l.level.color)}>
-                      {l.level.label}
-                    </span>{" "}
-                    <span className="text-neutral-200">{l.msg}</span>
+                {logs.length === 0 ? (
+                  <div className="text-[11px] text-neutral-500">
+                    Console cleared — awaiting telemetry…
                   </div>
-                ))}
+                ) : (
+                  logs.map((l, idx) => (
+                    <div
+                      key={`${l.ts}-${idx}`}
+                      className={cn(
+                        "whitespace-pre-wrap break-words text-[11px]",
+                        l.tint === "red" && "text-red-200",
+                        l.tint === "green" && "text-emerald-200",
+                      )}
+                    >
+                      <span className="text-neutral-500">[{l.ts}]</span>{" "}
+                      <span className={cn("font-semibold", l.level.color)}>
+                        {l.level.label}
+                      </span>{" "}
+                      <span
+                        className={cn(
+                          "text-neutral-200",
+                          l.tint === "red" && "text-red-200",
+                          l.tint === "green" && "text-emerald-200",
+                        )}
+                      >
+                        {l.msg}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </section>
 
           <section className="lg:col-span-3">
+            {error && !errorDismissed ? (
+              <div className="mb-3 flex items-center justify-between rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="size-4 text-red-300" />
+                  <span className="tracking-wide">{error}</span>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-md border border-red-500/20 bg-transparent px-2 py-1 text-[11px] text-red-200 transition hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                  onClick={() => setErrorDismissed(true)}
+                  aria-label="Dismiss backend unreachable banner"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
             <AnimatePresence mode="wait">
               {systemStatus === "idle" ? (
                 <motion.div
@@ -380,64 +487,68 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="px-5 pt-4">
-                    <div className="flex items-center gap-2 border-b border-neutral-800">
-                      <button
-                        type="button"
-                        className={cn(
-                          "relative -mb-px inline-flex items-center gap-2 border-b px-3 pb-3 pt-2 text-xs tracking-wide transition",
-                          activeTab === "engineer"
-                            ? "border-emerald-400 text-emerald-200"
-                            : "border-transparent text-neutral-400 hover:text-neutral-200",
-                        )}
-                        onClick={() => setActiveTab("engineer")}
-                      >
-                        <span className="size-1.5 rounded-full bg-emerald-400" />
-                        Engineer View
-                      </button>
-                      <button
-                        type="button"
-                        className={cn(
-                          "relative -mb-px inline-flex items-center gap-2 border-b px-3 pb-3 pt-2 text-xs tracking-wide transition",
-                          activeTab === "ciso"
-                            ? "border-emerald-400 text-emerald-200"
-                            : "border-transparent text-neutral-400 hover:text-neutral-200",
-                        )}
-                        onClick={() => setActiveTab("ciso")}
-                      >
-                        <span className="size-1.5 rounded-full bg-neutral-500" />
-                        CISO Post-Mortem
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="px-5 py-4">
-                    {activeTab === "engineer" ? (
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 py-1 text-[11px] font-semibold tracking-wide text-red-200">
-                              <span className="size-1.5 rounded-full bg-red-400" />
-                              SEVERITY: CRITICAL
-                            </span>
-                            <span className="text-xs text-neutral-400">
-                              Recommended mitigation script
-                            </span>
+                  <div className="divide-y divide-neutral-700">
+                    <div className="px-5 py-3">
+                      <div className="grid gap-3 text-[11px] md:grid-cols-3">
+                        <div className="rounded-md border border-neutral-800 bg-black/20 px-3 py-2">
+                          <div className="text-neutral-500">Source IP</div>
+                          <div className="mt-0.5 text-emerald-300">
+                            192.168.1.100
                           </div>
+                        </div>
+                        <div className="rounded-md border border-neutral-800 bg-black/20 px-3 py-2">
+                          <div className="text-neutral-500">Port</div>
+                          <div className="mt-0.5 text-neutral-200">22 (SSH)</div>
+                        </div>
+                        <div className="rounded-md border border-neutral-800 bg-black/20 px-3 py-2">
+                          <div className="text-neutral-500">Detected At</div>
+                          <div className="mt-0.5 text-neutral-200">
+                            {detectedAtIso ?? "—"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs tracking-wide text-neutral-300">
+                          <span className="size-1.5 rounded-full bg-emerald-400" />
+                          <span className="uppercase">Engineer View</span>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 py-1 text-[11px] font-semibold tracking-wide text-red-200">
+                          <span className="size-1.5 rounded-full bg-red-400" />
+                          SEVERITY: CRITICAL
+                        </span>
+                      </div>
 
+                      <div className="mb-3 text-sm font-semibold tracking-tight text-neutral-50">
+                        {attackType}
+                      </div>
+
+                      <div className="rounded-lg border border-neutral-800 bg-black/40">
+                        <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
+                          <div className="flex items-center gap-2 text-[11px] text-neutral-400">
+                            <CheckCircle2 className="size-3.5 text-emerald-400" />
+                            <span>iptables</span>
+                          </div>
+                          <div className="text-[11px] text-neutral-500">
+                            run on:{" "}
+                            <span className="text-neutral-300">{targetNode}</span>
+                          </div>
+                        </div>
+                        <div className="relative overflow-hidden">
                           <button
                             type="button"
                             className={cn(
-                              "inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] tracking-wide transition focus:outline-none focus:ring-2",
+                              "absolute right-2 top-2 z-10 inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] tracking-wide transition focus:outline-none focus:ring-2",
                               copied
                                 ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200 focus:ring-emerald-500/40"
-                                : "border-neutral-800 bg-neutral-950/40 text-neutral-200 hover:bg-neutral-900/60 focus:ring-neutral-700",
+                                : "border-neutral-800 bg-black/40 text-neutral-200 hover:bg-black/55 focus:ring-neutral-700",
                             )}
                             onClick={onCopyCode}
                           >
                             {copied ? (
                               <>
-                                <ClipboardCheck className="size-3.5" />
+                                <Check className="size-3.5" />
                                 Copied
                               </>
                             ) : (
@@ -447,41 +558,59 @@ export default function Home() {
                               </>
                             )}
                           </button>
+
+                          <SyntaxHighlighter
+                            language="bash"
+                              style={atomDark}
+                            customStyle={{
+                              margin: 0,
+                              padding: "12px",
+                              fontSize: "11px",
+                              lineHeight: "20px",
+                            }}
+                            codeTagProps={{
+                              style: {
+                                fontFamily:
+                                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                              },
+                            }}
+                            wrapLongLines
+                          >
+                            {mitigationScript}
+                          </SyntaxHighlighter>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-5 py-4">
+                      <div className="mb-3 flex items-center gap-2 text-xs tracking-wide text-neutral-300">
+                        <span className="size-1.5 rounded-full bg-neutral-500" />
+                        <span className="uppercase">CISO Post-Mortem</span>
+                      </div>
+
+                      <div className="rounded-md border border-neutral-800 bg-neutral-950 p-4">
+                        <div className="space-y-1 text-[11px] text-neutral-300">
+                          <div>
+                            <span className="text-neutral-500">To:</span>{" "}
+                            <span>Executive Board</span>
+                          </div>
+                          <div>
+                            <span className="text-neutral-500">From:</span>{" "}
+                            <span>AEGIS Automated CISO</span>
+                          </div>
+                          <div>
+                            <span className="text-neutral-500">Subject:</span>{" "}
+                            <span>Incident Mitigated - {attackType}</span>
+                          </div>
                         </div>
 
-                        <div className="rounded-lg border border-neutral-800 bg-black/40">
-                          <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2">
-                            <div className="flex items-center gap-2 text-[11px] text-neutral-400">
-                              <CheckCircle2 className="size-3.5 text-emerald-400" />
-                              <span>iptables</span>
-                            </div>
-                            <div className="text-[11px] text-neutral-500">
-                              run on:{" "}
-                              <span className="text-neutral-300">{targetNode}</span>
-                            </div>
-                          </div>
-                          <pre className="overflow-auto p-3 text-[11px] leading-5 text-neutral-200">
-                            <code>{mitigationScript}</code>
-                          </pre>
+                        <div className="mt-4 border-t border-neutral-800 pt-4">
+                          <p className="font-sans text-sm leading-6 text-gray-300">
+                            {cisoReport}
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="text-xs tracking-wide text-neutral-300">
-                          Executive summary
-                        </div>
-                        <div className="rounded-lg border border-neutral-800 bg-black/30 p-3">
-                          <textarea
-                            className="h-60 w-full resize-none bg-transparent text-[12px] leading-5 text-neutral-200 placeholder:text-neutral-600 focus:outline-none"
-                            defaultValue={cisoText}
-                          />
-                        </div>
-                        <div className="text-[11px] text-neutral-500">
-                          This panel is designed for executive reporting and audit-ready
-                          narrative.
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </motion.div>
               )}
