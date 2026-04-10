@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Pathfinder | AI Learning Roadmap</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error": "#ffb4ab",
+                        "inverse-primary": "#005ac2",
+                        "on-surface-variant": "#c2c6d6",
+                        "surface-container-high": "#222a3d",
+                        "on-secondary-container": "#00311f",
+                        "on-primary-container": "#00285d",
+                        "on-tertiary-container": "#0d0096",
+                        "secondary": "#4edea3",
+                        "primary": "#adc6ff",
+                        "tertiary-container": "#8083ff",
+                        "tertiary-fixed": "#e1e0ff",
+                        "surface-variant": "#2d3449",
+                        "error-container": "#93000a",
+                        "on-tertiary-fixed": "#07006c",
+                        "surface-container-lowest": "#060e20",
+                        "primary-fixed-dim": "#adc6ff",
+                        "inverse-on-surface": "#283044",
+                        "inverse-surface": "#dae2fd",
+                        "on-tertiary": "#1000a9",
+                        "surface": "#0b1326",
+                        "on-background": "#dae2fd",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary": "#003824",
+                        "on-surface": "#dae2fd",
+                        "on-secondary-fixed": "#002113",
+                        "background": "#0b1326",
+                        "outline": "#8c909f",
+                        "on-error": "#690005",
+                        "secondary-fixed": "#6ffbbe",
+                        "surface-container": "#171f33",
+                        "on-tertiary-fixed-variant": "#2f2ebe",
+                        "surface-container-low": "#131b2e",
+                        "surface-tint": "#adc6ff",
+                        "secondary-container": "#00a572",
+                        "surface-container-highest": "#2d3449",
+                        "on-primary": "#002e6a",
+                        "on-primary-fixed": "#001a42",
+                        "surface-bright": "#31394d",
+                        "secondary-fixed-dim": "#4edea3",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-dim": "#0b1326",
+                        "on-secondary-fixed-variant": "#005236",
+                        "tertiary-fixed-dim": "#c0c1ff",
+                        "primary-container": "#4d8eff",
+                        "outline-variant": "#424754",
+                        "on-primary-fixed-variant": "#004395",
+                        "tertiary": "#c0c1ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        body {
+            background-color: #0b1326;
+            color: #dae2fd;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .roadmap-line::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #424754;
+            z-index: 0;
+        }
+
+        @media (min-width: 768px) {
+            .roadmap-line::before {
+                left: 40px;
+            }
+        }
+
+        .glass-header {
+            background: rgba(11, 19, 38, 0.7);
+            backdrop-filter: blur(12px);
+        }
+
+        .node-active .node-dot {
+            background: #4edea3;
+            box-shadow: 0 0 12px #4edea3;
+        }
+
+        .node-active .node-card {
+            opacity: 0.6;
+            border-color: #00a572;
+        }
+
+        .node-active .node-check {
+            background-color: #4edea3;
+            border-color: #4edea3;
+            color: #00311f;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+    <!-- Top Navigation Bar (The Anchor) -->
+    <header
+        class="fixed top-0 w-full z-50 glass-header after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-slate-800/50 shadow-[0_0_32px_rgba(186,210,255,0.06)]">
+        <div
+            class="flex flex-col md:flex-row justify-between items-center h-auto md:h-16 px-6 max-w-[800px] mx-auto py-4 md:py-0 gap-4">
+            <h1 class="text-2xl font-black tracking-tight text-primary font-headline">Pathfinder</h1>
+            <nav class="flex items-center gap-6">
+                <select
+                    class="bg-surface-container-highest text-on-surface border-none rounded-lg text-sm px-3 py-2 focus:ring-2 focus:ring-primary appearance-none cursor-pointer pr-8 font-medium">
+                    <option value="web-dev">Web Dev</option>
+                    <option selected="" value="ai-ml">AI/ML</option>
+                    <option value="dsa">DSA</option>
+                </select>
+                <button
+                    class="text-slate-400 hover:text-error transition-colors duration-200 text-sm font-semibold active:scale-95">
+                    Reset Progress
+                </button>
+            </nav>
+        </div>
+    </header>
+    <!-- Side Navigation (Mobile Hidden, Web Visible) -->
+    <aside
+        class="hidden xl:flex flex-col p-4 gap-y-2 h-full w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant/10">
+        <div class="mb-8 px-3">
+            <div class="text-xl font-black text-primary font-headline mb-1">Pathfinder</div>
+            <div class="text-xs text-slate-500 font-medium">The Digital Cartesian</div>
+        </div>
+        <nav class="flex flex-col gap-1">
+            <a class="text-primary bg-primary/10 rounded-lg px-3 py-2 flex items-center gap-3 transition-all" href="#">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">map</span>
+                <span class="text-sm font-medium">Roadmap</span>
+            </a>
+            <a class="text-slate-500 hover:text-slate-300 px-3 py-2 flex items-center gap-3 transition-all hover:bg-slate-800/50 rounded-lg"
+                href="#">
+                <span class="material-symbols-outlined">library_books</span>
+                <span class="text-sm font-medium">Resources</span>
+            </a>
+            <a class="text-slate-500 hover:text-slate-300 px-3 py-2 flex items-center gap-3 transition-all hover:bg-slate-800/50 rounded-lg"
+                href="#">
+                <span class="material-symbols-outlined">group</span>
+                <span class="text-sm font-medium">Community</span>
+            </a>
+            <a class="text-slate-500 hover:text-slate-300 px-3 py-2 flex items-center gap-3 transition-all hover:bg-slate-800/50 rounded-lg"
+                href="#">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="text-sm font-medium">Settings</span>
+            </a>
+        </nav>
+        <div class="mt-auto p-4 bg-surface-container-high rounded-xl">
+            <div class="text-xs font-bold text-primary mb-2 uppercase tracking-wider">Pro Access</div>
+            <p class="text-[10px] text-on-surface-variant mb-3">Unlock personalized mentoring and advanced labs.</p>
+            <button
+                class="w-full py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary-container text-xs font-bold rounded-lg shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+                Upgrade to Pro
+            </button>
+        </div>
+    </aside>
+    <!-- Main Content Canvas -->
+    <main class="pt-32 pb-20 px-4 md:px-0 max-w-[800px] mx-auto min-h-screen">
+        <!-- Sticky Progress Dashboard -->
+        <div
+            class="sticky top-20 z-40 mb-12 py-4 glass-header rounded-xl px-6 shadow-sm border border-outline-variant/10">
+            <div class="flex justify-between items-end mb-3">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-secondary">Current Journey</span>
+                    <h2 class="text-xl font-bold text-on-surface">AI &amp; Machine Learning Foundations</h2>
+                </div>
+                <span class="text-lg font-black text-secondary">42% <span
+                        class="text-xs font-medium text-slate-500">Completed</span></span>
+            </div>
+            <div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-secondary-container to-secondary" style="width: 42%;"></div>
+            </div>
+        </div>
+        <!-- Vertical Timeline Container -->
+        <section class="relative roadmap-line flex flex-col gap-12 pl-12 md:pl-24">
+            <!-- Milestone 1: Mathematical Foundations -->
+            <div class="relative group">
+                <!-- Node Dot -->
+                <div
+                    class="node-dot absolute -left-[32px] md:-left-[44px] top-8 w-4 h-4 rounded-full bg-outline-variant border-4 border-surface z-10 transition-all duration-300 group-hover:scale-125">
+                </div>
+                <!-- Roadmap Card -->
+                <article
+                    class="node-card bg-surface-container-high p-6 rounded-xl shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 border border-transparent">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-on-surface leading-tight">Linear Algebra &amp; Calculus for AI
+                        </h3>
+                        <div
+                            class="node-check w-6 h-6 rounded border-2 border-outline-variant flex items-center justify-center cursor-pointer transition-colors hover:border-primary">
+                            <span class="material-symbols-outlined text-[18px]"
+                                style="font-variation-settings: 'FILL' 1;">check</span>
+                        </div>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
+                        Master the core mathematics required to understand how neural networks operate, focusing on
+                        partial derivatives, matrix multiplication, and eigenvalues.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">3.5
+                            Hours</span>
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Quiz
+                            Included</span>
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Mathematics</span>
+                    </div>
+                </article>
+            </div>
+            <!-- Milestone 2: Python Mastery -->
+            <div class="relative group node-active">
+                <div
+                    class="node-dot absolute -left-[32px] md:-left-[44px] top-8 w-4 h-4 rounded-full bg-outline-variant border-4 border-surface z-10 transition-all duration-300 group-hover:scale-125">
+                </div>
+                <article
+                    class="node-card bg-surface-container-high p-6 rounded-xl shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 border border-transparent">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-on-surface leading-tight">Python for Data Science</h3>
+                        <div
+                            class="node-check w-6 h-6 rounded border-2 border-outline-variant flex items-center justify-center cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[18px]"
+                                style="font-variation-settings: 'FILL' 1;">check</span>
+                        </div>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
+                        Learn NumPy, Pandas, and Matplotlib. These are the fundamental tools for data manipulation and
+                        visualization in the modern AI ecosystem.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">8
+                            Modules</span>
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Practical
+                            Lab</span>
+                    </div>
+                </article>
+            </div>
+            <!-- Milestone 3: Supervised Learning -->
+            <div class="relative group">
+                <div
+                    class="node-dot absolute -left-[32px] md:-left-[44px] top-8 w-4 h-4 rounded-full bg-outline-variant border-4 border-surface z-10 transition-all duration-300 group-hover:scale-125">
+                </div>
+                <article
+                    class="node-card bg-surface-container-high p-6 rounded-xl shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 border border-transparent">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-on-surface leading-tight">Supervised Learning &amp; Regression
+                        </h3>
+                        <div
+                            class="node-check w-6 h-6 rounded border-2 border-outline-variant flex items-center justify-center cursor-pointer transition-colors hover:border-primary">
+                            <span class="material-symbols-outlined text-[18px]"
+                                style="font-variation-settings: 'FILL' 1;">check</span>
+                        </div>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
+                        Deep dive into linear and logistic regression. Understand how to train models using Gradient
+                        Descent and evaluate them using MSE and R-squared.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">ML
+                            Core</span>
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Scikit-Learn</span>
+                    </div>
+                </article>
+            </div>
+            <!-- Milestone 4: Deep Learning Intro -->
+            <div class="relative group">
+                <div
+                    class="node-dot absolute -left-[32px] md:-left-[44px] top-8 w-4 h-4 rounded-full bg-outline-variant border-4 border-surface z-10 transition-all duration-300 group-hover:scale-125">
+                </div>
+                <article
+                    class="node-card bg-surface-container-high p-6 rounded-xl shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 border border-transparent">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-on-surface leading-tight">Neural Networks Architecture</h3>
+                        <div
+                            class="node-check w-6 h-6 rounded border-2 border-outline-variant flex items-center justify-center cursor-pointer transition-colors hover:border-primary">
+                            <span class="material-symbols-outlined text-[18px]"
+                                style="font-variation-settings: 'FILL' 1;">check</span>
+                        </div>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
+                        The transition to Deep Learning. Build your first Perceptron and explore backpropagation and
+                        activation functions like ReLU and Softmax.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Advanced</span>
+                        <span
+                            class="px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary rounded-md uppercase tracking-wide">Keras/PyTorch</span>
+                    </div>
+                </article>
+            </div>
+        </section>
+        <!-- Bento Inspired Secondary Info -->
+        <div class="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+                class="col-span-1 md:col-span-2 bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                <h4 class="text-sm font-bold text-on-surface mb-2">Recommended Reading</h4>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-surface-container-high rounded-lg">
+                        <span class="text-xs font-medium">Deep Learning with Python</span>
+                        <span class="material-symbols-outlined text-sm text-primary">open_in_new</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface-container-high rounded-lg">
+                        <span class="text-xs font-medium">Statistical Learning Paradigms</span>
+                        <span class="material-symbols-outlined text-sm text-primary">open_in_new</span>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="bg-gradient-to-br from-surface-container-high to-surface-container-highest p-6 rounded-xl border border-outline-variant/20 flex flex-col justify-center items-center text-center">
+                <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mb-3">
+                    <span class="material-symbols-outlined text-secondary"
+                        style="font-variation-settings: 'FILL' 1;">stars</span>
+                </div>
+                <div class="text-[10px] font-black uppercase text-secondary tracking-widest mb-1">Streak</div>
+                <div class="text-2xl font-black text-on-surface">14 Days</div>
+            </div>
+        </div>
+    </main>
+    <!-- Bottom Navigation (Mobile Only) -->
+    <nav
+        class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-lowest/80 backdrop-blur-xl border-t border-outline-variant/10 z-50">
+        <div class="flex justify-around items-center h-16">
+            <button class="flex flex-col items-center gap-1 text-primary">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">map</span>
+                <span class="text-[10px] font-bold">Roadmap</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 text-slate-500">
+                <span class="material-symbols-outlined">library_books</span>
+                <span class="text-[10px] font-bold">Learn</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 text-slate-500">
+                <span class="material-symbols-outlined">group</span>
+                <span class="text-[10px] font-bold">Social</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 text-slate-500">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="text-[10px] font-bold">Profile</span>
+            </button>
+        </div>
+    </nav>
+    <!-- FAB for AI Chat (Task Focused Suppression Check: This is Home, so FAB is allowed) -->
+    <button
+        class="fixed bottom-20 md:bottom-10 right-6 md:right-10 w-14 h-14 bg-gradient-to-br from-primary to-primary-container rounded-full shadow-2xl flex items-center justify-center text-on-primary shadow-primary/30 active:scale-90 hover:scale-110 transition-all z-50">
+        <span class="material-symbols-outlined text-[28px]"
+            style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+    </button>
+</body>
+
+</html>
