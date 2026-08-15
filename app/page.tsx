@@ -101,11 +101,15 @@ export default function Home() {
   const detectedAtIso = threatData?.detectedAtIso ?? null;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    if (error) setErrorDismissed(false);
+    if (error) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setErrorDismissed(false);
+    }
   }, [error]);
 
   useEffect(() => {
@@ -124,6 +128,7 @@ export default function Home() {
   useEffect(() => {
     if (!hasMounted) return;
     if (systemStatus !== "mitigated") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogs((prev) => {
       const next = [
         ...prev,
