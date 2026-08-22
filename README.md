@@ -34,3 +34,38 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## 🔒 Security
+
+This repository uses [gitleaks](https://github.com/gitleaks/gitleaks) for automatic secret scanning on every commit.
+
+### Pre-commit Hook
+
+A pre-commit hook is configured to scan for secrets before each commit. This helps prevent accidentally committing sensitive information like:
+- API keys
+- Passwords
+- Tokens
+- Private keys
+
+### Setup
+
+To enable the pre-commit hook locally:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+```
+
+### Bypass (Emergency Only)
+
+In case of emergency, you can bypass the hook:
+
+```bash
+git commit --no-verify -m "emergency commit"
+```
+
+> ⚠️ Only use `--no-verify` in emergency situations. Regular commits should always be scanned.
+
