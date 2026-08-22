@@ -119,7 +119,7 @@ export default function Home() {
     const id = window.setInterval(() => {
       setLogs((prev) => {
         const next = [...prev, makeLogLine(new Date(), { tint })];
-        return next.length > 100 ? next.slice(next.length - 100) : next;
+        return next.length > 100 ? next.slice(-100) : next;
       });
     }, delayMs);
     return () => window.clearInterval(id);
@@ -139,7 +139,7 @@ export default function Home() {
           tint: "green" as const,
         } satisfies LogLine,
       ];
-      return next.length > 100 ? next.slice(next.length - 100) : next;
+      return next.length > 100 ? next.slice(-100) : next;
     });
   }, [hasMounted, systemStatus]);
 
@@ -260,6 +260,7 @@ export default function Home() {
                 aria-label="Reset dashboard"
               >
                 <span className="size-4">⟲</span>
+                {' '}
                 Reset Dashboard
               </button>
             ) : (
@@ -521,6 +522,7 @@ export default function Home() {
                         </div>
                         <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 py-1 text-[11px] font-semibold tracking-wide text-red-200">
                           <span className="size-1.5 rounded-full bg-red-400" />
+                          {' '}
                           SEVERITY: CRITICAL
                         </span>
                       </div>
