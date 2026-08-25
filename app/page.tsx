@@ -102,6 +102,7 @@ export default function Home() {
   const detectedAtIso = threatData?.detectedAtIso ?? null;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
   }, []);
 
@@ -145,6 +146,7 @@ export default function Home() {
   useEffect(() => {
     if (!hasMounted) return;
     if (systemStatus !== "mitigated") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogs((prev) => {
       const next = [
         ...prev,
@@ -276,6 +278,7 @@ export default function Home() {
                 aria-label="Reset dashboard"
               >
                 <span className="size-4">⟲</span>
+                {' '}
                 Reset Dashboard
               </button>
             ) : (
@@ -551,6 +554,7 @@ export default function Home() {
                         </div>
                         <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/35 bg-red-500/10 px-2 py-1 text-[11px] font-semibold tracking-wide text-red-200">
                           <span className="size-1.5 rounded-full bg-red-400" />
+                          {' '}
                           SEVERITY: CRITICAL
                         </span>
                       </div>
