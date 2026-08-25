@@ -38,7 +38,9 @@ function formatTs(d: Date) {
 }
 
 function pick<T>(arr: readonly T[]) {
-  return arr[Math.floor(Math.random() * arr.length)]!;
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return arr[Math.floor(buf[0] / 0x100000000 * arr.length)]!;
 }
 
 function ipFromReservedRanges() {
