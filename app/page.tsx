@@ -109,10 +109,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (error) setErrorDismissed(false);
-  }, [error]);
-
-  useEffect(() => {
     const checkBackend = async () => {
       try {
         const res = await fetch("/api/health", { cache: "no-store" });
@@ -190,6 +186,7 @@ export default function Home() {
 
   function onSimulateAttack() {
     setCopied(false);
+    setErrorDismissed(false);
     trigger();
 
     setLogs((prev) => [
